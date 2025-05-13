@@ -59,7 +59,11 @@ class _SerialSelectorState extends State<SerialSelector> {
             onPressed:
                 selectedPort != null
                     ? () {
-                      Get.to(() => AppScaffold(child: TelemetryView()));
+                      Get.to(
+                        () => AppScaffold(
+                          child: TelemetryView(selectedPort: selectedPort!),
+                        ),
+                      );
                     }
                     : null,
             child: Text("Open".tr),
