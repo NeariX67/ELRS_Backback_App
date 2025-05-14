@@ -15,7 +15,7 @@ class SerialSelector extends StatefulWidget {
 class _SerialSelectorState extends State<SerialSelector> {
   String? selectedPort;
 
-  final List<String> serialPorts = SerialPort.availablePorts;
+  List<String> serialPorts = SerialPort.availablePorts;
 
   @override
   Widget build(BuildContext context) {
@@ -24,36 +24,51 @@ class _SerialSelectorState extends State<SerialSelector> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 0.5,
-            child: DropdownButton<String>(
-              value: selectedPort,
-              hint: Text("Port".tr),
-              alignment: Alignment.center,
-              enableFeedback: true,
-              isExpanded: true,
-              dropdownColor: Theme.of(context).colorScheme.surfaceContainer,
-              items:
-                  serialPorts
-                      .map(
-                        (e) => DropdownMenuItem<String>(
-                          value: e,
-                          alignment: Alignment.center,
-                          child: Text(
-                            e,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.secondary,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: MediaQuery.of(context).size.width * 0.5,
+                child: DropdownButton<String>(
+                  value: selectedPort,
+                  hint: Text("Port".tr),
+                  alignment: Alignment.center,
+                  enableFeedback: true,
+                  isExpanded: true,
+                  dropdownColor: Theme.of(context).colorScheme.surfaceContainer,
+                  items:
+                      serialPorts
+                          .map(
+                            (e) => DropdownMenuItem<String>(
+                              value: e,
+                              alignment: Alignment.center,
+                              child: Text(
+                                e,
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-              onChanged: (port) {
-                setState(() {
-                  selectedPort = port;
-                });
-              },
-            ),
+                          )
+                          .toList(),
+                  onChanged: (port) {
+                    setState(() {
+                      selectedPort = port;
+                    });
+                  },
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    serialPorts = SerialPort.availablePorts;
+                  });
+                },
+                icon: Icon(Icons.refresh),
+              ),
+            ],
           ),
           ElevatedButton(
             onPressed:

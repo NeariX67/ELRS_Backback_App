@@ -20,9 +20,12 @@ dependencies:
   permission_handler: ^12.0.0+1
   url_launcher: ^6.1.12
   wakelock_plus: ^1.1.4
+  flutter_map: ^8.1.1
+  latlong2: ^0.9.1
 
   elrs_telem:
     path: ../dart_elrs_telemetry
+  graphx: ^1.0.14
 
 dev_dependencies:
   flutter_test:
