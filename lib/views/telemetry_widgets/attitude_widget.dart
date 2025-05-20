@@ -1,6 +1,5 @@
 import 'package:elrs_telem/models.dart';
 import 'package:flutter/material.dart';
-import 'package:graphx/graphx.dart';
 
 import 'artificial_horizon.dart';
 
@@ -14,17 +13,8 @@ class AttitudeWidget extends StatelessWidget {
       child: ListenableBuilder(
         listenable: attitude,
         builder:
-            (context, child) => Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: SceneBuilderWidget(
-                builder:
-                    () => SceneController(
-                      front: ArtificialHorizon(attitude: attitude),
-                      config: SceneConfig.games,
-                    ),
-                autoSize: true,
-              ),
-            ),
+            (context, child) =>
+                ArtificialHorizon(pitch: attitude.pitch, roll: attitude.roll),
       ),
     );
   }

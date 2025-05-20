@@ -3,18 +3,17 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_libserialport/flutter_libserialport.dart';
-import 'package:get/get.dart';
 
-class SerialController extends GetxController {
+import 'data_controller.dart';
+
+class SerialController extends DataController {
   final String selectedPort;
 
   SerialPort? serialPort;
   SerialPortReader? reader;
   StreamSubscription? readerStream;
 
-  void Function(Map<String, dynamic> json) onDataReceived;
-
-  SerialController({required this.selectedPort, required this.onDataReceived});
+  SerialController({required this.selectedPort, required super.onDataReceived});
 
   StringBuffer buffer = StringBuffer();
 

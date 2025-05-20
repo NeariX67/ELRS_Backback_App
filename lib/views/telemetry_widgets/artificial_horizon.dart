@@ -1,369 +1,183 @@
-import 'dart:ui';
-
-import 'package:elrs_telem/models.dart';
 import 'package:flutter/material.dart';
-import 'package:graphx/graphx.dart';
+import 'dart:math';
 
-class ArtificialHorizon extends GSprite {
-  GSprite mainContainer = GSprite();
+class ArtificialHorizon extends StatelessWidget {
+  final double pitch; // degrees
+  final double roll; // degrees
+  final double size;
 
-  /// inner circle.
-  GSprite rotatorCircle = GSprite();
-  GSprite? movable;
-
-  double innerCircSeparation = 50.0;
-  double outlineThickness1 = 18.0;
-  double outlineThickness2 = 10.0;
-  late double meterSize;
-  final redColor = const Color(0xffDA5537);
-  double valueMeterGap = 34.0;
-  late double innerCircleSize;
-
-  double get minStageSize => Math.min(stage!.stageWidth, stage!.stageHeight);
-
-  final Attitude attitude;
-
-  ArtificialHorizon({required this.attitude});
+  const ArtificialHorizon({
+    super.key,
+    required this.pitch,
+    required this.roll,
+    this.size = 260,
+  });
 
   @override
-  void addedToStage() {
-    meterSize = minStageSize;
-    drawBackground();
-    drawInnerCircle();
-    addChild(mainContainer);
-
-    var mainMask = GShape();
-    var radius = meterSize / 2;
-    mainMask.graphics
-        .beginFill(Colors.red.withOpacity(.3))
-        .drawCircle(0, 0, radius)
-        .endFill();
-    addChild(mainMask);
-    mainContainer.mask = mainMask;
-
-    /// center pivot in the current bounding box of scene.
-    alignPivot();
-
-    stage!.onResized.add(() {
-      /// position the scene in the middle of screen.
-      setPosition(stage!.stageWidth / 2, stage!.stageHeight / 2);
-
-      /// scale % accordingly.
-      scale = minStageSize / meterSize;
-    });
-  }
-
-  Future<void> drawInnerCircle() async {
-    innerCircleSize =
-        meterSize -
-        outlineThickness1 * 2 -
-        outlineThickness2 * 2 +
-        4 -
-        innerCircSeparation * 0.5;
-
-    var maskCircle =
-        GShape()
-          ..graphics
-              .beginFill(Colors.red.withOpacity(.4))
-              .drawCircle(0, 0, innerCircleSize / 2)
-              .endFill();
-
-    drawRotator();
-
-    /// apply the circle mask.
-    rotatorCircle.mask = maskCircle;
-
-    mainContainer.addChild(rotatorCircle);
-
-    /// if you dont add the mask, the Matrix transformation will not apply.
-    /// and will work on local coordinates of the maskee.
-    mainContainer.addChild(maskCircle);
-
-    /// add the static plane reference.
-    var plane = buildPlane();
-    mainContainer.addChild(plane);
-
-    createOutsideLines();
-
-    /// create some movement for the airplane!
-    stage!.onEnterFrame.add(onEnterFrame);
-  }
-
-  bool isPressed(LogicalKeyboardKey key) => stage!.keyboard.isPressed(key);
-
-  void onEnterFrame(double delta) {
-    movable!.y = attitude.pitch;
-    rotatorCircle.rotation = attitude.roll;
-  }
-
-  GSprite? drawRotator() {
-    /// background first.
-    movable = GSprite();
-
-    /// center pivot in the drawn object.
-    rotatorCircle.alignPivot();
-
-    var sky = buildBox(
-      const Color(0xff3D84A9),
-      innerCircleSize,
-      innerCircleSize,
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: size,
+        height: size,
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black),
+        child: CustomPaint(painter: _HorizonPainter(pitch, roll)),
+        // child: CustomPaint(painter: _HorizonPainter(10, 15)),
+      ),
     );
-    var ground = buildBox(
-      const Color(0xff493F42),
-      innerCircleSize,
-      innerCircleSize,
+  }
+}
+
+class _HorizonPainter extends CustomPainter {
+  final double pitch;
+  final double roll;
+
+  _HorizonPainter(this.pitch, this.roll);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final double radius = size.width / 2 - 10;
+    const double pitchScale = 2.5;
+    const int maxPitch = 60;
+
+    final Paint skyPaint = Paint()..color = Colors.blue.shade700;
+    final Paint groundPaint = Paint()..color = Colors.brown.shade700;
+    final Paint linePaint =
+        Paint()
+          ..color = Colors.white
+          ..strokeWidth = 2;
+    final Paint thickLinePaint =
+        Paint()
+          ..color = Colors.white
+          ..strokeWidth = 3;
+
+    final textStyle = TextStyle(color: Colors.white, fontSize: 10);
+
+    // === CLIP CIRCLE FOR HORIZON ===
+    canvas.save();
+    canvas.clipPath(
+      Path()..addOval(Rect.fromCircle(center: center, radius: radius)),
     );
-    var line = buildBox(kColorWhite, innerCircleSize, 2);
 
-    sky.alignPivot(Alignment.bottomCenter);
-    ground.alignPivot(Alignment.topCenter);
-    line.alignPivot();
+    // === MOVING HORIZON ===
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(-roll * pi / 180);
+    canvas.translate(0, pitch * pitchScale);
 
-    movable!.addChild(sky);
-    movable!.addChild(ground);
-    movable!.addChild(line);
+    Rect sky = Rect.fromLTWH(
+      -size.width,
+      -size.height * 2,
+      size.width * 2,
+      size.height * 2,
+    );
+    Rect ground = Rect.fromLTWH(
+      -size.width,
+      0,
+      size.width * 2,
+      size.height * 2,
+    );
+    canvas.drawRect(sky, skyPaint);
+    canvas.drawRect(ground, groundPaint);
+    canvas.drawLine(Offset(-size.width, 0), Offset(size.width, 0), linePaint);
 
-    /// another option to draw background.
-    //    var rotatorBackground = GShape();
-    //    var g = rotatorBackground.graphics;
-    //    g
-    //        .beginFill(0x3D84A9)
-    //        .drawRect(0, 0, innerCircleSize, innerCircleSize / 2)
-    //        .endFill()
-    ////    and floor.
-    //        .beginFill(0x493F42)
-    //        .drawRect(0, innerCircleSize / 2, innerCircleSize, innerCircleSize / 2)
-    //        .endFill()
-    ////    and middle line.
-    //        .lineStyle(2, 0xffffff)
-    //        .moveTo(0, innerCircleSize / 2)
-    //        .lineTo(innerCircleSize, innerCircleSize / 2)
-    //        .endFill();
-    //    movable.addChild(rotatorBackground);
-
-    var elements = buildRotatorElements();
-    movable!.addChild(elements);
-    rotatorCircle.addChild(movable!);
-
-    /// the red arrow should always stay in the same position...
-    /// re-parent the element to the rotator circle.
-    var arrow = elements.getChildByName('arrow')!;
-    rotatorCircle.addChild(arrow);
-    return movable;
-  }
-
-  GSprite buildRotatorElements() {
-    var content = GSprite();
-    var w = innerCircleSize;
-
-    /// build arrow.
-    var arrow = buildArrow(height: 30, color: redColor, linkThickness: 2);
-    arrow.name = 'arrow';
-    arrow.y = -w / 2 + 6; // + 6= compensate line miter joints.
-    arrow.rotation = deg2rad(180);
-    content.addChild(arrow);
-
-    var lines = GSprite();
-    content.addChild(lines);
-
-    GText buildTextVal(int value) {
-      var tf = GText(
-        text: value.toString(),
-        textStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
+    for (int angle = -maxPitch; angle <= maxPitch; angle += 10) {
+      if (angle == 0) continue;
+      double y = -angle * pitchScale;
+      double lineLength = angle % 20 == 0 ? 20 : 10;
+      canvas.drawLine(
+        Offset(-lineLength.toDouble(), y),
+        Offset(lineLength.toDouble(), y),
+        linePaint,
       );
-      tf.validate();
-      tf.scaleY = 1.2; // give some stretch.
-      tf.alignPivot();
-      return tf;
+
+      final textSpan = TextSpan(text: angle.abs().toString(), style: textStyle);
+      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)
+        ..layout();
+      tp.paint(canvas, Offset(lineLength + 4, y - tp.height / 2));
+      tp.paint(canvas, Offset(-lineLength - tp.width - 4, y - tp.height / 2));
     }
 
-    GSprite _addLine(int index) {
-      var absoluteValue = index < 0 ? -index : index;
-      var spr = GSprite();
-      var tf1 = buildTextVal(absoluteValue * 10);
-      var tf2 = buildTextVal(absoluteValue * 10);
-      const textSepStep = 14.0;
-      const minSep = 28.0;
-      tf1.x = -textSepStep * absoluteValue - minSep;
-      tf2.x = textSepStep * absoluteValue + minSep;
+    canvas.restore(); // restore after pitch/roll
+    canvas.restore(); // restore clipping
 
-      final lineOffset = (tf1.textWidth / 2 + 6); // 6 is the gap
+    // === FIXED AIRCRAFT MARKERS ===
+    canvas.drawLine(
+      Offset(center.dx - 30, center.dy),
+      Offset(center.dx + 30, center.dy),
+      linePaint,
+    );
+    canvas.drawLine(
+      Offset(center.dx, center.dy - 10),
+      Offset(center.dx, center.dy + 10),
+      linePaint,
+    );
 
-      spr.graphics
-          .lineStyle(1.6, kColorWhite)
-          .moveTo(tf1.x + lineOffset, 0)
-          .lineTo(tf2.x - lineOffset, 0);
+    // === ROLL TICKS OUTSIDE CIRCLE ===
+    for (double angle = -90; angle <= 90; angle += 7.5) {
+      bool isMajor = angle % 30 == 0;
+      bool isMinor = angle % 15 == 0;
+      double tickLength =
+          isMajor
+              ? 15
+              : isMinor
+              ? 12.5
+              : 10;
+      double tickAngleRad = (angle - roll) * pi / 180;
 
-      var underlineY = valueMeterGap / 2;
+      double outerR = radius + 8;
+      double innerR = outerR - tickLength;
 
-      if (index > 0) {
-        /// when drawing the bottom underlines ... draw them
-        /// at the top of the text.
-        underlineY *= -1;
-      }
-
-      const underlineW = 28.0;
-      spr.graphics
-          .moveTo(-underlineW / 2, underlineY)
-          .lineTo(underlineW / 2, underlineY)
-          .endFill();
-
-      spr.addChild(tf1);
-      spr.addChild(tf2);
-      return spr;
-    }
-
-    for (var i = -2; i <= 2; ++i) {
-      // dont draw the middle value.
-      if (i == 0) continue;
-      var line = _addLine(i);
-      line.y = i * valueMeterGap.toDouble();
-      lines.addChild(line);
-    }
-
-    return content;
-  }
-
-  GShape buildPlane() {
-    var w = innerCircleSize - innerCircSeparation * 2;
-    var lineSize = w / 3.5;
-    var plane = GShape();
-    final g = plane.graphics;
-    g.lineStyle(6, redColor, true, StrokeCap.round, StrokeJoin.round);
-    g.moveTo(0, 0).lineTo(lineSize, 0);
-
-    /// semi circle.
-    var arcCenterX = w / 2;
-    var arcRadius = (w - lineSize * 2) / 2;
-    g.arc(arcCenterX, 0, arcRadius, deg2rad(0), deg2rad(180));
-    g.moveTo(w - lineSize, 0).lineTo(w, 0);
-    g.endFill();
-
-    g.beginFill(redColor).drawCircle(arcCenterX, 0, 4);
-
-    /// align the GShape to the center.
-    plane.alignPivot(Alignment.topCenter);
-
-    /// compensate the offset bounds generated by line thickness and the
-    /// center dot.
-    plane.pivotY += 4;
-
-    return plane;
-  }
-
-  void drawBackground() {
-    var radius = meterSize / 1.9;
-    var outlines = GShape();
-    final g = outlines.graphics;
-    g
-        .lineStyle(outlineThickness1, const Color(0xff3B414B))
-        .drawCircle(0, 0, radius - outlineThickness1 * .4);
-    g
-        .lineStyle(outlineThickness2, const Color(0xff1C2023))
-        .drawCircle(0, 0, radius - outlineThickness1 - outlineThickness2 * .3);
-
-    /// draw the floor.
-    var skyFloor = GShape();
-    skyFloor.graphics
-        .beginFill(const Color(0xff5ABAEC))
-        .drawRect(0, 0, meterSize, meterSize / 2);
-    skyFloor.graphics
-        .beginFill(const Color(0xff5E5351))
-        .drawRect(0, meterSize / 2, meterSize, meterSize / 2);
-    skyFloor.alignPivot();
-    mainContainer.addChild(skyFloor);
-    mainContainer.addChild(outlines);
-  }
-
-  void createOutsideLines() {
-    var outsideLinesPicture = _createOutsideLinesPicture();
-
-    var left = GShape();
-    var right = GShape();
-    left.graphics.drawPicture(outsideLinesPicture);
-    right.graphics.drawPicture(outsideLinesPicture);
-
-    /// flip horizontally.
-    right.scaleX = -1;
-    mainContainer.addChildAt(left, 1);
-    mainContainer.addChildAt(right, 1);
-  }
-
-  Picture _createOutsideLinesPicture() {
-    var linesContainer = GSprite();
-
-    GShape _buildLine({
-      double thickness = 3.0,
-      required double rotationDegrees,
-    }) {
-      var line = GShape();
-      line.graphics.lineStyle(thickness, kColorWhite);
-      line.graphics.moveTo(0, 0);
-      line.graphics.lineTo((innerCircleSize + innerCircSeparation) / 2, 0);
-      line.pivotX = line.width;
-      line.rotation = deg2rad(rotationDegrees);
-      linesContainer.addChild(line);
-      return line;
-    }
-
-    var bigStep = 90 / 2;
-    var smallStep = bigStep / 3;
-    var currentAngle = 0.0;
-
-    /// center line.
-    _buildLine(thickness: 5, rotationDegrees: 0);
-    _buildLine(thickness: 5, rotationDegrees: currentAngle += bigStep);
-    _buildLine(thickness: 5, rotationDegrees: currentAngle += bigStep);
-    _buildLine(thickness: 2, rotationDegrees: currentAngle += smallStep);
-    _buildLine(thickness: 2, rotationDegrees: currentAngle += smallStep);
-
-    /// outside arrows are pushed away from the center by the radius.
-    var arrow1 = buildArrow(height: innerCircSeparation * .9);
-    arrow1.pivotY += innerCircleSize / 2;
-
-    var arrow2 = buildArrow(height: innerCircSeparation / 2);
-    arrow2.pivotY += innerCircleSize / 2;
-    arrow2.rotation = -deg2rad(90 / 2);
-
-    linesContainer.addChild(arrow1);
-    linesContainer.addChild(arrow2);
-
-    return linesContainer.createPicture();
-  }
-
-  GShape buildBox(Color color, double width, double height) {
-    return GShape()
-      ..graphics.beginFill(color).drawRect(0, 0, width, height).endFill();
-  }
-
-  GDisplayObject buildArrow({
-    double height = 45.0,
-    Color color = kColorWhite,
-    double linkThickness = -1,
-  }) {
-    var widthRatio = 0.5;
-    var w = height * widthRatio, h = height;
-    var arrow = GShape();
-    if (linkThickness < 0) {
-      arrow.graphics.beginFill(color);
-    } else {
-      arrow.graphics.lineStyle(
-        linkThickness,
-        color,
-        true,
-        StrokeCap.square,
-        StrokeJoin.miter,
-        4,
+      Offset start = Offset(
+        center.dx + innerR * sin(tickAngleRad),
+        center.dy - innerR * cos(tickAngleRad),
       );
+      Offset end = Offset(
+        center.dx + outerR * sin(tickAngleRad),
+        center.dy - outerR * cos(tickAngleRad),
+      );
+
+      canvas.drawLine(start, end, isMajor ? thickLinePaint : linePaint);
     }
-    arrow.graphics.moveTo(0, 0).lineTo(w, 0).lineTo(w / 2, h).lineTo(0, 0);
-    arrow.graphics.closePath();
-    arrow.graphics.endFill();
-    arrow.alignPivot(Alignment.bottomCenter);
-    return arrow;
+
+    // === TOP TRIANGLE ===
+    Path triangle = Path();
+    triangle.moveTo(center.dx, center.dy - radius - 14);
+    triangle.lineTo(center.dx - 6, center.dy - radius - 2);
+    triangle.lineTo(center.dx + 6, center.dy - radius - 2);
+    triangle.close();
+    canvas.drawPath(triangle, linePaint);
+
+    // === METALLIC BEZEL ===
+    final Paint bezelPaint =
+        Paint()
+          ..shader = RadialGradient(
+            colors: [Colors.grey.shade800, Colors.grey.shade300, Colors.black],
+            stops: [0.6, 0.9, 1.0],
+          ).createShader(Rect.fromCircle(center: center, radius: radius + 12))
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 10;
+
+    canvas.drawCircle(center, radius + 6, bezelPaint);
+
+    // === FIXED ROLL INDICATOR LINE AT TOP CENTER ===
+    final Paint rollPointerPaint =
+        Paint()
+          ..color = Colors.yellowAccent
+          ..strokeWidth = 3;
+
+    const double pointerLength = 20;
+    final double pointerX = center.dx;
+    final double pointerY = center.dy - radius - 20;
+
+    canvas.drawLine(
+      Offset(pointerX, pointerY),
+      Offset(pointerX, pointerY + pointerLength),
+      rollPointerPaint,
+    );
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

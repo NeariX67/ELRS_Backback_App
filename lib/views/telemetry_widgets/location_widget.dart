@@ -35,11 +35,10 @@ class _LocationWidgetState extends State<LocationWidget> {
   }
 
   void _positionChanged() {
-    bool success = mapController.move(
+    mapController.move(
       LatLng(widget.location.latitude, widget.location.longitude),
       mapController.camera.zoom,
     );
-    print('Map moved: $success');
   }
 
   @override

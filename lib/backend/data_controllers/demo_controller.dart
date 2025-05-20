@@ -1,11 +1,9 @@
 import 'dart:async';
 
-import 'package:get/get.dart';
+import 'data_controller.dart';
 
-class DemoController extends GetxController {
-  void Function(Map<String, dynamic> json) onDataReceived;
-
-  DemoController({required this.onDataReceived});
+class DemoController extends DataController {
+  DemoController({required super.onDataReceived});
 
   Timer? timer;
   int index = 0;
@@ -14,6 +12,13 @@ class DemoController extends GetxController {
   void onInit() {
     super.onInit();
     timer = Timer.periodic(const Duration(milliseconds: 200), _event);
+  }
+
+  @override
+  void onClose() {
+    timer?.cancel();
+    timer = null;
+    super.onClose();
   }
 
   void _event(Timer timer) {
