@@ -4,25 +4,28 @@ import 'dart:math';
 class ArtificialHorizon extends StatelessWidget {
   final double pitch; // degrees
   final double roll; // degrees
-  final double size;
 
-  const ArtificialHorizon({
-    super.key,
-    required this.pitch,
-    required this.roll,
-    this.size = 260,
-  });
+  const ArtificialHorizon({super.key, required this.pitch, required this.roll});
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
-        width: size,
-        height: size,
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black),
-        child: CustomPaint(painter: _HorizonPainter(pitch, roll)),
-        // child: CustomPaint(painter: _HorizonPainter(10, 15)),
+      child: Padding(
+        padding: const EdgeInsets.all(15.0),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Container(
+              width: constraints.maxWidth,
+              height: constraints.maxWidth,
+              clipBehavior: Clip.hardEdge,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black,
+              ),
+              child: CustomPaint(painter: _HorizonPainter(pitch, roll)),
+            );
+          },
+        ),
       ),
     );
   }
