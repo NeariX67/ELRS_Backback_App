@@ -109,12 +109,12 @@ class _HorizonPainter extends CustomPainter {
     canvas.drawLine(
       Offset(center.dx - 30, center.dy),
       Offset(center.dx + 30, center.dy),
-      linePaint,
+      thickLinePaint,
     );
     canvas.drawLine(
       Offset(center.dx, center.dy - 10),
       Offset(center.dx, center.dy + 10),
-      linePaint,
+      thickLinePaint,
     );
 
     // === ROLL TICKS OUTSIDE CIRCLE ===

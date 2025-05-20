@@ -9,6 +9,7 @@ import 'telemetry_widgets/attitude_widget.dart';
 import 'telemetry_widgets/battery_widget.dart';
 import 'telemetry_widgets/down_link_statistics_widget.dart';
 import 'telemetry_widgets/location_widget.dart';
+import 'telemetry_widgets/raw_location_widget.dart';
 import 'telemetry_widgets/up_link_statistics_widget.dart';
 import 'telemetry_widgets/video_transmitter_widget.dart';
 
@@ -40,6 +41,10 @@ class TelemetryView extends StatelessWidget {
                   children: [
                     if (telemetryController.telemetry.uavLocation != null)
                       LocationWidget(
+                        telemetryController.telemetry.uavLocation!,
+                      ),
+                    if (telemetryController.telemetry.uavLocation != null)
+                      RawLocationWidget(
                         telemetryController.telemetry.uavLocation!,
                       ),
                     if (telemetryController.telemetry.batterySensor != null)
